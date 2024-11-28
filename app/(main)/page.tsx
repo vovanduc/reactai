@@ -327,7 +327,7 @@ export default function Home() {
                         );
                         setIsPublishing(false);
                         toast.success(
-                          `Your app has been published & copied to your clipboard! llamacoder.io/share/${appId}`,
+                          `Your app has been published & copied to your clipboard! aireact.vercel.app//share/${appId}`,
                         );
                         navigator.clipboard.writeText(
                           `${domain}/share/${appId}`,

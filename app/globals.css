@@ -22,3 +22,13 @@
   font-weight: 700;
   font-style: normal;
 }
+
+.beta-badge {
+  background-color: #b3f236;
+  padding: 8px 24px;
+  border-radius: 100px;
+  font-size: 10px;
+  color: #000;
+  letter-spacing: 1px;
+  font-weight: 500;
+}

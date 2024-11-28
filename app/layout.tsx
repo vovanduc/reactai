@@ -6,9 +6,9 @@ import {
 
 let title = "ReactAI Components";
 let description = "Generate React Components with AI";
-let url = "https://reatai-components.vercel.app/";
-let ogimage = "https://reatai-components.vercel.app/og-image.png";
-let sitename = "reactai-components";
+let url = "https://aireact.vercel.app/";
+let ogimage = "https://aireact.vercel.app/og-image.png";
+let sitename = "aireact";
 
 export const metadata: Metadata = {
   metadataBase: new URL(url),

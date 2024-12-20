@@ -12,9 +12,9 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormEvent, useEffect, useState, useCallback } from "react";
 import { toast, Toaster } from "sonner";
-import { ChatCompletionStream } from "together-ai/lib/ChatCompletionStream.mjs";
 import LoadingDots from "../../components/loading-dots";
 import { shareApp } from "./actions";
+import { label } from "@/utils/shadcn";
 
 export default function Home() {
   let [status, setStatus] = useState<
@@ -22,18 +22,10 @@ export default function Home() {
   >("initial");
   let [prompt, setPrompt] = useState("");
   let models = [
-    {
-      label: "Grok Beta",
-      value: "grok-beta",
-    },
-    {
-      label: "Gemma 2.9B",
-      value: "gemma2-9b-it",
-    },
-    {
-      label: "Llama 3.1 70B",
-      value: "llama3-70b-8192",
-    }
+    { label: "claude", value: "claude" },
+    { label: "claude-3-5-sonnet", value: "claude-3-5-sonnet" },
+    { label: "claude-3-5-sonnet-20240620", value: "claude-3-5-sonnet-20240620" },
+    { label: "claude-sonnet-3.5", value: "claude-sonnet-3.5" },
   ];
   let [model, setModel] = useState(models[0].value);
   let [shadcn, setShadcn] = useState(false);
@@ -44,103 +36,131 @@ export default function Home() {
     shadcn: true,
   });
   let [ref, scrollTo] = useScrollTo();
-  let [messages, setMessages] = useState<{ role: string; content: string }[]>(
-    [],
-  );
+  let [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   let [isPublishing, setIsPublishing] = useState(false);
 
   let loading = status === "creating" || status === "updating";
 
-  // async function createApp(e: FormEvent<HTMLFormElement>) {
   const createApp = useCallback(
-      async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (status !== "initial") {
-      scrollTo({ delay: 0.5 });
-    }
-
-    // Avoid setting status if it's already "creating" to prevent loops
-    if (status === "creating") return;
-
-    setStatus("creating");
-    setGeneratedCode("");
-
-    let res = await fetch("/api/generateCode", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        shadcn,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(res.statusText);
-    }
-
-    if (!res.body) {
-      throw new Error("No response body");
-    }
-
-    ChatCompletionStream.fromReadableStream(res.body)
-      .on("content", (delta) => setGeneratedCode((prev) => prev + delta))
-      .on("end", () => {
+    async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+  
+      if (status !== "initial") {
+        scrollTo({ delay: 0.5 });
+      }
+  
+      if (status === "creating") return;
+  
+      setStatus("creating");
+      setGeneratedCode("");
+  
+      try {
+        const res = await fetch("/api/generateCode", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            shadcn,
+            messages: [{ role: "user", content: prompt }],
+          }),
+        });
+  
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Error: ${res.statusText}, ${errorText}`);
+        }
+  
+        if (!res.body) {
+          throw new Error("No response body");
+        }
+  
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let done = false;
+  
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+  
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            setGeneratedCode((prev) => prev + chunk);
+          }
+        }
+  
         setMessages([{ role: "user", content: prompt }]);
         setInitialAppConfig({ model, shadcn });
         setStatus("created");
-      });
+      } catch (error) {
+        console.error("Error creating app:", error);
+        toast.error("An error occurred while creating the app.");
+        setStatus("initial");
+      }
     },
-    [status, model, shadcn, prompt],
+    [status, model, shadcn, prompt, scrollTo]
   );
-
-  // async function updateApp(e: FormEvent<HTMLFormElement>) {
-    const updateApp = useCallback(
-      async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
   
-        if (status === "updating") return;
-    e.preventDefault();
 
-    setStatus("updating");
-
-    let codeMessage = { role: "assistant", content: generatedCode };
-    let modificationMessage = { role: "user", content: modification };
-
-    setGeneratedCode("");
-
-    const res = await fetch("/api/generateCode", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messages: [...messages, codeMessage, modificationMessage],
-        model: initialAppConfig.model,
-        shadcn: initialAppConfig.shadcn,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(res.statusText);
-    }
-
-    if (!res.body) {
-      throw new Error("No response body");
-    }
-
-    ChatCompletionStream.fromReadableStream(res.body)
-      .on("content", (delta) => setGeneratedCode((prev) => prev + delta))
-      .on("end", () => {
-        setMessages((m) => [...m, codeMessage, modificationMessage]);
+  const updateApp = useCallback(
+    async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+  
+      if (status === "updating") return;
+  
+      setStatus("updating");
+      setGeneratedCode("");
+  
+      let codeMessage = { role: "assistant", content: generatedCode };
+      let modificationMessage = { role: "user", content: modification };
+  
+      try {
+        const res = await fetch("/api/generateCode", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [...messages, codeMessage, modificationMessage],
+            model: initialAppConfig.model,
+            shadcn: initialAppConfig.shadcn,
+          }),
+        });
+  
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Error: ${res.statusText}, ${errorText}`);
+        }
+  
+        if (!res.body) {
+          throw new Error("No response body");
+        }
+  
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let done = false;
+  
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+  
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            setGeneratedCode((prev) => prev + chunk);
+          }
+        }
+  
+        setMessages((prevMessages) => [...prevMessages, codeMessage, modificationMessage]);
         setStatus("updated");
-      });
+      } catch (error) {
+        console.error("Error updating app:", error);
+        toast.error("An error occurred while updating the app.");
+        setStatus("initial");
+      }
     },
-    [status, generatedCode, modification, messages, initialAppConfig],
-  );
+    [status, generatedCode, modification, messages, initialAppConfig]
+  );  
 
   useEffect(() => {
     let el = document.querySelector(".cm-scroller");
@@ -169,93 +189,88 @@ export default function Home() {
 
       <form className="w-full max-w-xl" onSubmit={createApp}>
         <fieldset disabled={loading} className="disabled:opacity-75">
-          <div className="relative mt-5">
-            <div className="absolute -inset-2 rounded-[32px] bg-gray-300/50" />
-            <div className="relative flex rounded-3xl bg-white shadow-sm">
-              <div className="relative flex flex-grow items-stretch focus-within:z-10">
-                <textarea
-                  rows={3}
-                  required
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  name="prompt"
-                  className="w-full resize-none rounded-l-3xl bg-transparent px-6 py-5 text-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
-                  placeholder="Build me a Contact Form..."
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand disabled:text-gray-900"
-              >
-                {status === "creating" ? (
-                  <LoadingDots color="black" style="large" />
-                ) : (
-                  <ArrowLongRightIcon className="-ml-0.5 size-6" />
-                )}
-              </button>
-            </div>
-          </div>
-          <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-center sm:gap-8">
-            <div className="flex items-center justify-between gap-3 sm:justify-center">
-              <p className="text-gray-500 sm:text-xs">Model:</p>
-              <Select.Root
-                name="model"
-                disabled={loading}
-                value={model}
-                onValueChange={(value) => setModel(value)}
-              >
-                <Select.Trigger className="group flex w-60 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">
-                  <Select.Value />
-                  <Select.Icon className="ml-auto">
-                    <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
-                  </Select.Icon>
-                </Select.Trigger>
-                <Select.Portal>
-                  <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
-                    <Select.Viewport className="p-2">
-                      {models.map((model) => (
-                        <Select.Item
-                          key={model.value}
-                          value={model.value}
-                          className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
-                        >
-                          <Select.ItemText asChild>
-                            <span className="inline-flex items-center gap-2 text-gray-500">
-                              <div className="size-2 rounded-full bg-brand" />
-                              {model.label}
-                            </span>
-                          </Select.ItemText>
-                          <Select.ItemIndicator className="ml-auto">
-                            <CheckIcon className="size-5 text-brand" />
-                          </Select.ItemIndicator>
-                        </Select.Item>
-                      ))}
-                    </Select.Viewport>
-                    <Select.ScrollDownButton />
-                    <Select.Arrow />
-                  </Select.Content>
-                </Select.Portal>
-              </Select.Root>
-            </div>
-
-            <div className="flex h-full items-center justify-between gap-3 sm:justify-center">
-              <label className="text-gray-500 sm:text-xs" htmlFor="shadcn">
-                shadcn/ui:
-              </label>
-              <Switch.Root
-                className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand data-[state=checked]:bg-brand"
-                id="shadcn"
-                name="shadcn"
-                checked={shadcn}
-                onCheckedChange={(value) => setShadcn(value)}
-              >
-                <Switch.Thumb className="size-7 rounded-lg bg-gray-200 shadow-[0_1px_2px] shadow-gray-400 transition data-[state=checked]:translate-x-7 data-[state=checked]:bg-white data-[state=checked]:shadow-gray-600" />
-              </Switch.Root>
-            </div>
+          <div className="relative mt-5 flex">
+            <textarea
+              rows={3}
+              required
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              className="w-full resize-none rounded-l-3xl bg-transparent px-6 py-5 text-lg border-2 border-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+              placeholder="Build me a Contact Form..."
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="relative-ml-px inline-flex items-center gap-x-1.5 rounded-r-3xl px-3 py-2 text-sm font-semibold text-brand hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand disabled:text-gray-900 bg-gray/10 disabled:hover:bg-gray/10 border-2 border-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+            >
+              {status === "creating" ? (
+                <LoadingDots color="black" style="large" />
+              ) : (
+                <ArrowLongRightIcon className="-ml-0.5 size-6" />
+              )}
+            </button>
           </div>
         </fieldset>
       </form>
+
+      <div className="mt-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-center sm:gap-8">
+        <div className="flex items-center justify-between gap-3 sm:justify-center">
+          <p className="text-gray-500 sm:text-xs">Model:</p>
+          <Select.Root
+            name="model"
+            disabled={loading}
+            value={model}
+            onValueChange={(value) => setModel(value)}
+          >
+            <Select.Trigger className="group flex w-60 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white px-4 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">
+              <Select.Value />
+              <Select.Icon className="ml-auto">
+                <ChevronDownIcon className="size-6 text-gray-300 group-focus-visible:text-gray-500 group-enabled:group-hover:text-gray-500" />
+              </Select.Icon>
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Content className="overflow-hidden rounded-md bg-white shadow-lg">
+                <Select.Viewport className="p-2">
+                  {models.map((model) => (
+                    <Select.Item
+                      key={model.value}
+                      value={model.value}
+                      className="flex cursor-pointer items-center rounded-md px-3 py-2 text-sm data-[highlighted]:bg-gray-100 data-[highlighted]:outline-none"
+                    >
+                      <Select.ItemText asChild>
+                        <span className="inline-flex items-center gap-2 text-gray-500">
+                          <div className="size-2 rounded-full bg-brand" />
+                          {model.label}
+                        </span>
+                      </Select.ItemText>
+                      <Select.ItemIndicator className="ml-auto">
+                        <CheckIcon className="size-5 text-brand" />
+                      </Select.ItemIndicator>
+                    </Select.Item>
+                  ))}
+                </Select.Viewport>
+                <Select.ScrollDownButton />
+                <Select.Arrow />
+              </Select.Content>
+            </Select.Portal>
+          </Select.Root>
+        </div>
+
+        <div className="flex h-full items-center justify-between gap-3 sm:justify-center">
+          <label className="text-gray-500 sm:text-xs" htmlFor="shadcn">
+            shadcn/ui:
+          </label>
+          <Switch.Root
+            className="group flex w-20 max-w-xs items-center rounded-2xl border-[6px] border-gray-300 bg-white p-1.5 text-sm shadow-inner transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand data-[state=checked]:bg-brand"
+            id="shadcn"
+            name="shadcn"
+            checked={shadcn}
+            onCheckedChange={(value) => setShadcn(value)}
+          >
+            <Switch.Thumb className="size-7 rounded-lg bg-gray-200 shadow-[0_1px_2px] shadow-gray-400 transition data-[state=checked]:translate-x-7 data-[state=checked]:bg-white data-[state=checked]:shadow-gray-600" />
+          </Switch.Root>
+        </div>
+      </div>
 
       <hr className="border-1 mb-20 h-px bg-gray-700 dark:bg-gray-700" />
 
@@ -312,7 +327,7 @@ export default function Home() {
                       onClick={async () => {
                         setIsPublishing(true);
                         let userMessages = messages.filter(
-                          (message) => message.role === "user",
+                          (message) => message.role === "user"
                         );
                         let prompt =
                           userMessages[userMessages.length - 1].content;
@@ -323,14 +338,14 @@ export default function Home() {
                             prompt,
                             model: initialAppConfig.model,
                           }),
-                          1000,
+                          1000
                         );
                         setIsPublishing(false);
                         toast.success(
-                          `Your app has been published & copied to your clipboard! aireact.vercel.app//share/${appId}`,
+                          `Your app has been published & copied to your clipboard! aireact.vercel.app//share/${appId}`
                         );
                         navigator.clipboard.writeText(
-                          `${domain}/share/${appId}`,
+                          `${domain}/share/${appId}`
                         );
                       }}
                       className="inline-flex h-[68px] w-40 items-center justify-center gap-2 rounded-3xl bg-brand transition enabled:hover:bg-zinc-900 disabled:grayscale"

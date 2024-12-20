@@ -22,10 +22,10 @@ export default function Home() {
   >("initial");
   let [prompt, setPrompt] = useState("");
   let models = [
-    { label: "claude", value: "claude" },
     { label: "claude-3-5-sonnet", value: "claude-3-5-sonnet" },
     { label: "claude-3-5-sonnet-20240620", value: "claude-3-5-sonnet-20240620" },
     { label: "claude-sonnet-3.5", value: "claude-sonnet-3.5" },
+    { label: "claude", value: "claude" },
   ];
   let [model, setModel] = useState(models[0].value);
   let [shadcn, setShadcn] = useState(false);
@@ -179,13 +179,14 @@ export default function Home() {
       >
         <span className="text-center">
           Powered by <span className="font-medium">akshayn</span> and{" "}
-          <span className="font-medium">Grok AI</span>
+          <span className="font-medium">Claude / Anthropic </span>
         </span>
       </a>
       <h1 className="my-6 max-w-3xl text-4xl font-bold text-gray-800 sm:text-6xl">
         Build <span className="text-brand">React Components</span> using
         <span className="text-brand"> AI in seconds</span>
       </h1>
+      <p>Unlimited Usage on this site when in Beta (No credit card required)</p>
 
       <form className="w-full max-w-xl" onSubmit={createApp}>
         <fieldset disabled={loading} className="disabled:opacity-75">

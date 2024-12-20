@@ -15,11 +15,11 @@ export default function Footer() {
           </a>{" "}
           and{" "}
           <a
-            href="https://x.ai"
+            href="https://www.anthropic.com/"
             target="_blank"
             className="font-semibold text-brand underline-offset-4 transition hover:text-gray-700 hover:underline"
           >
-            Grok AI
+            Claude / Anthropic
           </a>
           .
         </div>

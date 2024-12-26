@@ -22,6 +22,14 @@ export default function Footer() {
             Claude / Anthropic
           </a>
           .
+          Inspired by&nbsp;
+          <a
+            href="https://github.com/Nutlope/llamacoder"
+            target="_blank"
+            className="font-semibold text-brand underline-offset-4 transition hover:text-gray-700 hover:underline"
+          >
+          llamacoder
+          </a>
         </div>
       </div>
       <div className="flex space-x-4 pb-4 sm:pb-0">

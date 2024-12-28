@@ -4,7 +4,7 @@
 
 ## Tech stack
 
-- [grokai](https://x.ai) from Meta for the LLM
+- [Claude AI](https://www.anthropic.com/) Claude AI Models
 - [Sandpack](https://sandpack.codesandbox.io/) for the code sandbox
 - Next.js app router with Tailwind
 - Prisma Postgress Database

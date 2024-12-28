@@ -1,5 +1,5 @@
 .sp-preview-container {
-  @apply flex h-full w-full grow flex-col justify-center;
+  @apply flex h-screen w-full grow flex-col justify-center;
 }
 
 .sp-preview-iframe {

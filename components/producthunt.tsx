@@ -6,7 +6,7 @@ export default function ProductHunt() {
                     src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=739674&theme=light"
                     alt="ReactAI - Open&#0032;source&#0032;free&#0032;AI&#0032;react&#0032;components&#0032;builder | Product Hunt"
                     className="producthunt"
-                    style={{ width: "250px", height: "54px" }}
+                    style={{ width: "200px", height: "54px" }}
                 />
             </a>
         </div>

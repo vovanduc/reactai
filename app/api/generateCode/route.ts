@@ -73,6 +73,7 @@ function getSystemPrompt(shadcn: boolean) {
 
     - Think carefully step by step.
     - Always use tailwindcss for styling
+    - For icons always use react-icons
     - Create a React component for whatever the user asked you to create and make sure it can run by itself by using a default export
     - Make sure the React app is interactive and functional by creating state when needed and having no required props
     - If you use any imports from React like useState or useEffect, make sure to import them directly

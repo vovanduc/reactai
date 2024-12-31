@@ -322,7 +322,7 @@ export default function Home() {
                 </div>
               </fieldset>
             </form>
-            <div>
+            <div className="w-[160px]">
               <Toaster invert={true} />
               <Tooltip.Provider>
                 <Tooltip.Root>
@@ -353,7 +353,7 @@ export default function Home() {
                           `${domain}/share/${appId}`
                         );
                       }}
-                      className="inline-flex w-[160px] py-2 w-full items-center justify-center gap-2 rounded-md bg-brand transition enabled:hover:bg-zinc-900 disabled:grayscale"
+                      className="inline-flex py-2 w-full items-center justify-center gap-2 rounded-md bg-brand transition enabled:hover:bg-zinc-900 disabled:grayscale"
                     >
                       <span className="relative">
                         {isPublishing && (

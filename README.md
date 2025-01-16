@@ -2,12 +2,44 @@
   An open source project that can generate React Components.
 </p>
 
+## Workflow
+
+```mermaid
+graph TD
+    A[User] -->|Access| B[Web Application]
+    B --> C{Authentication}
+    C -->|Logged in| D[Dashboard]
+    C -->|Not logged in| E[Login/Register]
+    
+    D --> F[Features]
+    F -->|1| G[Code Editor]
+    F -->|2| H[Share Code]
+    F -->|3| I[Template Examples]
+    
+    G -->|Save| J[(Database)]
+    H -->|Generate| K[Share Link]
+    I -->|Load| L[Template Code]
+    
+    subgraph Backend
+    J
+    end
+    
+    subgraph Frontend
+    G
+    H
+    I
+    end
+```
+
+
 ## Tech stack
 
 - [Claude AI](https://www.anthropic.com/) Claude AI Models
 - [Sandpack](https://sandpack.codesandbox.io/) for the code sandbox
 - Next.js app router with Tailwind
 - Prisma Postgress Database
+- CodeSandbox/Sandpack (Code editor)
+- Tailwind CSS (Styling)
 
 ## Examples Demo generated using ReactAI
 
